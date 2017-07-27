@@ -1,4 +1,3 @@
-import os
 import requests
 import json
 from requests.auth import HTTPBasicAuth
@@ -7,22 +6,23 @@ from BaseClass import BaseClass
 
 
 class Ticket(BaseClass):
-    FIELDS_KEY = 'fields'
-    PROJECT_KEY = 'project'
-    SUMMARY_KEY = 'summary'
+    CONFIGS = Configs.get()
     DESCRIPTION_KEY = 'description'
+    ENVIRONMENT_KEY = 'environment'
+    FIELDS_KEY = 'fields'
     ISSUETYPE_KEY = 'issuetype'
     LABELS_KEY = 'labels'
+    PROJECT_KEY = 'project'
     PRIORITY_KEY = 'priority'
-    CONFIGS = Configs.get()
+    SUMMARY_KEY = 'summary'
 
     def __init__(self, data, is_lambda):
         self.incident_number = self.get_incident_number(data)
         self.summary = self.get_summary(data)
+        self.pager_duty_link = self.get_pager_duty_link(data)
         self.ticket_data = {self.FIELDS_KEY: {}}
         self.jira_auth = self.get_jira_auth()
         self.ticket_url = None
-        self.pager_duty_link = self.get_pager_duty_link(data)
         super(Ticket, self).__init__(is_lambda)
         self.set_ticket_data()
 
@@ -71,6 +71,10 @@ class Ticket(BaseClass):
             custom_fields = self.CONFIGS['custom_fields']
             if custom_fields:
                 for custom_field, value in custom_fields.iteritems():
+                    # TODO: Make filters of custom fields more generic
+                    # Currently this filter will replace the value to the first word of the PD subject summary
+                    if isinstance(value, dict):
+                        value['value'] = self.filter_first_word(self.summary)
                     self.update_ticket({custom_field: value})
         except Exception as e:
             super(Ticket, self).print_error('Could not set custom fields. Please refer to documentation', e)
@@ -107,6 +111,9 @@ class Ticket(BaseClass):
 
     def get_pager_duty_link(self, data):
         return data['incident']['html_url']
+
+    def filter_first_word(self, string):
+        return string.split(' ')[0]
 
     @classmethod
     def get_jira_auth(_self):
