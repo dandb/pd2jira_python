@@ -7,6 +7,7 @@ from BaseClass import BaseClass
 
 class Ticket(BaseClass):
     CONFIGS = Configs.get()
+    COMPONENTS_KEY = 'components'
     DESCRIPTION_KEY = 'description'
     ENVIRONMENT_KEY = 'environment'
     FIELDS_KEY = 'fields'
@@ -33,6 +34,7 @@ class Ticket(BaseClass):
         self.update_ticket(self.get_issuetype_field())
         self.update_ticket(self.get_labels_field())
         self.update_ticket(self.get_priority_field())
+        self.update_ticket(self.get_components_field())
         self.set_custom_fields()
 
     def create(self):
@@ -91,6 +93,11 @@ class Ticket(BaseClass):
     def get_priority_field(self):
         return {self.PRIORITY_KEY: self.CONFIGS['priority']}
 
+    def get_components_field(self):
+        if self.COMPONENTS_KEY in self.CONFIGS:
+            return {self.COMPONENTS_KEY: self.CONFIGS[self.COMPONENTS_KEY]}
+
+
     def get_summary_field(self):
         return {self.SUMMARY_KEY: "[PagerDuty] {0}: {1}".format(self.incident_number, self.summary)}
 
@@ -100,7 +107,8 @@ class Ticket(BaseClass):
                 self.pager_duty_link, self.summary)}
 
     def update_ticket(self, data):
-        self.ticket_data[self.FIELDS_KEY].update(data)
+        if data is not None:
+            self.ticket_data[self.FIELDS_KEY].update(data)
 
     @classmethod
     def get_incident_number(_self, data):
